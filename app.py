@@ -43,38 +43,6 @@ def save_quizzes(quizzes):
 def index():
     return render_template('index.html')
 
-@app.route('/debug_ocr', methods=['POST'])
-def debug_ocr():
-    try:
-        step = 'start'
-        data = request.json
-        step = 'image_key'
-        img_data = data['image']
-        step = 'b64_decode'
-        raw = img_data.split(',')[1] if ',' in img_data else img_data
-        img_bytes = base64.b64decode(raw)
-        step = 'pil_open'
-        image = Image.open(io.BytesIO(img_bytes)).convert('RGB')
-        step = 'pil_save'
-        buf = io.BytesIO()
-        image.save(buf, format='PNG')
-        image_data = base64.standard_b64encode(buf.getvalue()).decode('utf-8')
-        step = 'client_init'
-        client = anthropic.Anthropic(api_key=os.environ.get('CLAUDE_API_KEY'))
-        step = 'api_call'
-        msg = client.messages.create(
-            model='claude-3-haiku-20240307',
-            max_tokens=50,
-            timeout=20,
-            messages=[{'role':'user','content':[
-                {'type':'image','source':{'type':'base64','media_type':'image/png','data':image_data}},
-                {'type':'text','text':'이 이미지를 한 단어로 설명해줘.'}
-            ]}]
-        )
-        step = 'done'
-        return jsonify({'step': step, 'ok': True, 'response': msg.content[0].text})
-    except BaseException as e:
-        return jsonify({'step': step, 'error': type(e).__name__ + ': ' + str(e)[:300]})
 
 @app.route('/add_quiz', methods=['POST'])
 def add_quiz():
@@ -190,7 +158,7 @@ def extract_ocr():
         image_data = base64.standard_b64encode(buffered.getvalue()).decode('utf-8')
 
         message = client.messages.create(
-            model="claude-3-haiku-20240307",
+            model="claude-3-5-sonnet-20241022",
             max_tokens=2048,
             timeout=25,
             messages=[{
