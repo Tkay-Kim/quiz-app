@@ -170,15 +170,15 @@ document.getElementById('extract-ocr-btn').addEventListener('click', function() 
     resultDiv.style.display = 'none';
     resultDiv.innerHTML = '';
 
-    const formData = new FormData();
-    formData.append('file', fileInput.files[0]);
-
-    fetch('/extract_ocr', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        fetch('/extract_ocr', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({image: e.target.result})
+        })
+        .then(response => response.json())
+        .then(data => {
         btn.disabled = false;
         btn.textContent = '📥 문제 자동 추출 및 저장';
         if (data.error) {
@@ -192,10 +192,12 @@ document.getElementById('extract-ocr-btn').addEventListener('click', function() 
             document.getElementById('preview-image').style.display = 'none';
         }
     })
-    .catch(error => {
-        btn.disabled = false;
-        btn.textContent = '📥 문제 자동 추출 및 저장';
-        resultDiv.innerHTML = '<div class="alert alert-danger">❌ 오류: ' + error + '</div>';
-        resultDiv.style.display = 'block';
-    });
+        .catch(error => {
+            btn.disabled = false;
+            btn.textContent = '📥 문제 자동 추출 및 저장';
+            resultDiv.innerHTML = '<div class="alert alert-danger">❌ 오류: ' + error + '</div>';
+            resultDiv.style.display = 'block';
+        });
+    };
+    reader.readAsDataURL(fileInput.files[0]);
 });

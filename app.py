@@ -133,13 +133,9 @@ def parse_questions(text):
 
 @app.route('/extract_ocr', methods=['POST'])
 def extract_ocr():
-    if 'file' not in request.files:
-        return jsonify({'error': '파일이 없습니다'}), 400
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({'error': '파일을 선택하세요'}), 400
-    if not allowed_file(file.filename):
-        return jsonify({'error': 'PNG, JPG, JPEG, GIF, BMP 파일만 업로드 가능합니다'}), 400
+    data = request.json
+    if not data or 'image' not in data:
+        return jsonify({'error': '이미지 데이터가 없습니다'}), 400
 
     api_key = os.environ.get('CLAUDE_API_KEY') or os.environ.get('ANTHROPIC_API_KEY')
     if not api_key:
@@ -147,7 +143,9 @@ def extract_ocr():
 
     try:
         client = anthropic.Anthropic(api_key=api_key)
-        image = Image.open(file.stream)
+        raw = data['image'].split(',')[1] if ',' in data['image'] else data['image']
+        img_bytes = base64.b64decode(raw)
+        image = Image.open(io.BytesIO(img_bytes))
         if image.mode != 'RGB':
             image = image.convert('RGB')
         max_dim = 1600
