@@ -2,8 +2,24 @@ from flask import Flask, render_template, request, jsonify
 import json
 import os
 import random
+from werkzeug.utils import secure_filename
+import anthropic
+from PIL import Image
+import base64
+import io
 
 app = Flask(__name__)
+
+# Claude API 클라이언트 초기화
+client = anthropic.Anthropic(api_key=os.environ.get('CLAUDE_API_KEY'))
+
+# 파일 업로드 설정
+UPLOAD_FOLDER = 'uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp'}
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
 
 QUIZ_FILE = 'quiz_data.json'
 
@@ -71,6 +87,58 @@ def delete_quiz(index):
         save_quizzes(quizzes)
         return jsonify({'message': '퀴즈가 삭제되었습니다!'})
     return jsonify({'error': '유효하지 않은 인덱스'}), 400
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/extract_ocr', methods=['POST'])
+def extract_ocr():
+    if 'file' not in request.files:
+        return jsonify({'error': '파일이 없습니다'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': '파일을 선택하세요'}), 400
+    
+    if not allowed_file(file.filename):
+        return jsonify({'error': 'PNG, JPG, JPEG, GIF, BMP 파일만 업로드 가능합니다'}), 400
+    
+    try:
+        # 이미지를 base64로 인코딩
+        image = Image.open(file.stream)
+        buffered = io.BytesIO()
+        image.save(buffered, format="PNG")
+        image_data = base64.standard_b64encode(buffered.getvalue()).decode('utf-8')
+        
+        # Claude Vision API로 이미지 분석
+        message = client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=2048,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": "image/png",
+                                "data": image_data
+                            }
+                        },
+                        {
+                            "type": "text",
+                            "text": "이 사진에서 4지선다 문제를 찾아서 다음 형식으로 추출해줘:\n문제: [문제 내용]\n1. [선택지1]\n2. [선택지2]\n3. [선택지3]\n4. [선택지4]\n정답: [1-4]"
+                        }
+                    ]
+                }
+            ]
+        )
+        
+        text = message.content[0].text
+        return jsonify({'text': text})
+    except Exception as e:
+        return jsonify({'error': f'OCR 처리 중 오류: {str(e)}'}), 500
 
 @app.route('/take_quiz', methods=['POST'])
 def take_quiz():

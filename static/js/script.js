@@ -142,3 +142,100 @@ function deleteQuiz(index) {
         });
     }
 }
+
+// OCR 기능
+document.getElementById('image-upload').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            document.getElementById('preview-image').src = event.target.result;
+            document.getElementById('preview-image').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+document.getElementById('extract-ocr-btn').addEventListener('click', function() {
+    const fileInput = document.getElementById('image-upload');
+    if (!fileInput.files.length) {
+        alert('사진을 선택하세요');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    fetch('/extract_ocr', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            alert('오류: ' + data.error);
+        } else {
+            document.getElementById('ocr-text').value = data.text;
+            document.getElementById('ocr-result').style.display = 'block';
+        }
+    })
+    .catch(error => alert('OCR 처리 실패: ' + error));
+});
+
+document.getElementById('save-ocr-quiz').addEventListener('click', function() {
+    const text = document.getElementById('ocr-text').value;
+    
+    // 텍스트에서 문제, 선택지, 정답 추출
+    const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+    
+    let question = '';
+    let options = [];
+    let answer = -1;
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        
+        if (line.startsWith('문제:') || line.startsWith('문제 :')) {
+            question = line.replace(/^문제\s*:?\s*/, '');
+        } else if (line.match(/^1[\.\)]/)) {
+            options[0] = line.replace(/^1[\.\)]\s*/, '');
+        } else if (line.match(/^2[\.\)]/)) {
+            options[1] = line.replace(/^2[\.\)]\s*/, '');
+        } else if (line.match(/^3[\.\)]/)) {
+            options[2] = line.replace(/^3[\.\)]\s*/, '');
+        } else if (line.match(/^4[\.\)]/)) {
+            options[3] = line.replace(/^4[\.\)]\s*/, '');
+        } else if (line.startsWith('정답:') || line.startsWith('정답 :')) {
+            const answerMatch = line.match(/\d/);
+            if (answerMatch) {
+                answer = parseInt(answerMatch[0]) - 1;
+            }
+        }
+    }
+    
+    if (!question || options.length !== 4 || answer < 0 || answer > 3) {
+        alert('문제, 선택지 4개, 정답이 모두 필요합니다. 텍스트를 수정하세요.');
+        return;
+    }
+    
+    fetch('/add_quiz', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            question: question,
+            options: options,
+            answer: (answer + 1).toString(),
+            tags: ''
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        alert(data.message);
+        document.getElementById('image-upload').value = '';
+        document.getElementById('ocr-text').value = '';
+        document.getElementById('ocr-result').style.display = 'none';
+        document.getElementById('preview-image').style.display = 'none';
+    });
+});
