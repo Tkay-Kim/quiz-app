@@ -1,0 +1,15 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.container {
+    max-width: 800px;
+}
+
+#quiz-questions .form-check {
+    margin-bottom: 10px;
+}
+
+#details p {
+    margin-bottom: 5px;
+}
