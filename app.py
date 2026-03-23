@@ -106,6 +106,15 @@ def extract_ocr():
     try:
         # 이미지를 base64로 인코딩
         image = Image.open(file.stream)
+        # RGBA, 팔레트 등 다양한 모드 처리
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+        # 핸드폰 대용량 사진 리사이즈 (Claude API 전송 최적화)
+        max_dim = 1600
+        if max(image.size) > max_dim:
+            ratio = max_dim / max(image.size)
+            new_size = (int(image.size[0] * ratio), int(image.size[1] * ratio))
+            image = image.resize(new_size, Image.LANCZOS)
         buffered = io.BytesIO()
         image.save(buffered, format="PNG")
         image_data = base64.standard_b64encode(buffered.getvalue()).decode('utf-8')
@@ -128,7 +137,7 @@ def extract_ocr():
                         },
                         {
                             "type": "text",
-                            "text": "이 사진 속 4지선다 문제를 추출해줘. 반드시 다음 형식으로만 답변해줘:\n\n문제: [문제 내용]\n1. [선택지1]\n2. [선택지2]\n3. [선택지3]\n4. [선택지4]\n정답: [1 또는 2 또는 3 또는 4]\n\n다른 말은 절대 하지말고 오직 이 형식으로만 답변해줘."
+                            "text": "이 사진 속 4지선다 문제를 추출해줘. 마크다운 없이 반드시 아래 형식 그대로만 답변해줘. 괄호나 설명 없이 실제 내용만 넣어:\n\n문제: [문제 내용]\n1. [선택지1]\n2. [선택지2]\n3. [선택지3]\n4. [선택지4]\n정답: [1 또는 2 또는 3 또는 4]\n\n이 형식 외 다른 말은 절대 금지. 볼드체(**) 같은 마크다운도 금지."
                         }
                     ]
                 }

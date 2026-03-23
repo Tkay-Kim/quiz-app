@@ -1,8 +1,11 @@
 {
-  "envs": [
-    {
-      "key": "CLAUDE_API_KEY",
-      "value": "${CLAUDE_API_KEY}"
-    }
-  ]
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "startCommand": "python app.py",
+    "healthcheckPath": "/",
+    "restartPolicyType": "ON_FAILURE"
+  }
 }

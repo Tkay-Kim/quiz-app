@@ -163,6 +163,10 @@ document.getElementById('extract-ocr-btn').addEventListener('click', function() 
         return;
     }
 
+    const btn = document.getElementById('extract-ocr-btn');
+    btn.disabled = true;
+    btn.textContent = '⏳ OCR 처리 중... (10~20초 소요)';
+
     const formData = new FormData();
     formData.append('file', fileInput.files[0]);
 
@@ -172,49 +176,68 @@ document.getElementById('extract-ocr-btn').addEventListener('click', function() 
     })
     .then(response => response.json())
     .then(data => {
+        btn.disabled = false;
+        btn.textContent = '🔍 OCR로 텍스트 추출';
         if (data.error) {
             alert('오류: ' + data.error);
         } else {
-            document.getElementById('ocr-text').value = data.text;
+            // 마크다운 제거 후 표시
+            const cleanText = data.text.replace(/\*\*/g, '').replace(/\*/g, '').replace(/`/g, '');
+            document.getElementById('ocr-text').value = cleanText;
             document.getElementById('ocr-result').style.display = 'block';
         }
     })
-    .catch(error => alert('OCR 처리 실패: ' + error));
+    .catch(error => {
+        btn.disabled = false;
+        btn.textContent = '🔍 OCR로 텍스트 추출';
+        alert('OCR 처리 실패: ' + error);
+    });
 });
 
 document.getElementById('save-ocr-quiz').addEventListener('click', function() {
     const text = document.getElementById('ocr-text').value;
-    
+
     // 텍스트에서 문제, 선택지, 정답 추출
     const lines = text.split('\n').map(line => line.trim()).filter(line => line);
-    
+
     let question = '';
     let options = [null, null, null, null];
     let answer = -1;
-    
+    let questionMode = false;
+
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        
+
         // 문제 추출
-        if (line.includes('문제:') || line.includes('문제 :')) {
-            question = line.split(/문제\s*:?\s*/)[1]?.trim() || '';
-        } 
+        if (/^문제\s*:/.test(line)) {
+            question = line.replace(/^문제\s*:\s*/, '').trim();
+            questionMode = true;
+        }
         // 선택지 추출 (숫자로 시작하면서 . ) 등으로 구분)
         else if (/^1[\.\)\s]/.test(line)) {
             options[0] = line.replace(/^1[\.\)\s]+/, '').trim();
+            questionMode = false;
         } else if (/^2[\.\)\s]/.test(line)) {
             options[1] = line.replace(/^2[\.\)\s]+/, '').trim();
+            questionMode = false;
         } else if (/^3[\.\)\s]/.test(line)) {
             options[2] = line.replace(/^3[\.\)\s]+/, '').trim();
+            questionMode = false;
         } else if (/^4[\.\)\s]/.test(line)) {
             options[3] = line.replace(/^4[\.\)\s]+/, '').trim();
+            questionMode = false;
         }
         // 정답 추출
-        else if (line.includes('정답:') || line.includes('정답 :')) {
+        else if (/^정답\s*:/.test(line)) {
             const answerMatch = line.match(/[1-4]/);
             if (answerMatch) {
                 answer = parseInt(answerMatch[0]) - 1;
             }
+            questionMode = false;
+        }
+        // 다줄 문제 이어붙이기
+        else if (questionMode && question) {
+            question += ' ' + line;
         }
     }
     
