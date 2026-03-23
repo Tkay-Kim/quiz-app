@@ -172,7 +172,7 @@ document.getElementById('extract-ocr-btn').addEventListener('click', function() 
 
     const reader = new FileReader();
     reader.onload = function(e) {
-        fetch('/extract_ocr', {
+        fetch('/ocr', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({image: e.target.result})

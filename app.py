@@ -131,7 +131,7 @@ def parse_questions(text):
             questions.append({'question': question, 'options': options, 'answer': answer, 'tags': []})
     return questions
 
-@app.route('/extract_ocr', methods=['POST'])
+@app.route('/ocr', methods=['POST'])
 def extract_ocr():
     data = request.json
     if not data or 'image' not in data:
