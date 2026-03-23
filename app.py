@@ -43,6 +43,25 @@ def save_quizzes(quizzes):
 def index():
     return render_template('index.html')
 
+@app.route('/debug_ocr', methods=['POST'])
+def debug_ocr():
+    try:
+        step = 'start'
+        data = request.json
+        step = 'json_parsed'
+        if not data or 'image' not in data:
+            return jsonify({'step': step, 'error': 'no image key'})
+        step = 'image_key_found'
+        raw = data['image'][:20]
+        step = 'image_read'
+        api_key = os.environ.get('CLAUDE_API_KEY', '')[:10]
+        step = 'apikey_read'
+        client = anthropic.Anthropic(api_key=os.environ.get('CLAUDE_API_KEY'))
+        step = 'client_created'
+        return jsonify({'step': step, 'ok': True, 'key_prefix': api_key})
+    except BaseException as e:
+        return jsonify({'step': step, 'error': type(e).__name__ + ': ' + str(e)[:200]})
+
 @app.route('/add_quiz', methods=['POST'])
 def add_quiz():
     data = request.json
