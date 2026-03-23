@@ -164,8 +164,11 @@ document.getElementById('extract-ocr-btn').addEventListener('click', function() 
     }
 
     const btn = document.getElementById('extract-ocr-btn');
+    const resultDiv = document.getElementById('ocr-result');
     btn.disabled = true;
-    btn.textContent = '⏳ OCR 처리 중... (10~20초 소요)';
+    btn.textContent = '⏳ 분석 중... (5~15초 소요)';
+    resultDiv.style.display = 'none';
+    resultDiv.innerHTML = '';
 
     const formData = new FormData();
     formData.append('file', fileInput.files[0]);
@@ -174,125 +177,25 @@ document.getElementById('extract-ocr-btn').addEventListener('click', function() 
         method: 'POST',
         body: formData
     })
-    .then(response => {
-        if (!response.ok) {
-            return response.text().then(text => {
-                throw new Error('서버 오류 ' + response.status + ': ' + text.substring(0, 300));
-            });
-        }
-        return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
         btn.disabled = false;
-        btn.textContent = '🔍 OCR로 텍스트 추출';
+        btn.textContent = '📥 문제 자동 추출 및 저장';
         if (data.error) {
-            alert('오류: ' + data.error);
+            resultDiv.innerHTML = '<div class="alert alert-danger">❌ ' + data.error + '</div>';
+            resultDiv.style.display = 'block';
         } else {
-            // 마크다운 제거 후 표시
-            const cleanText = data.text.replace(/\*\*/g, '').replace(/\*/g, '').replace(/`/g, '');
-            document.getElementById('ocr-text').value = cleanText;
-            document.getElementById('ocr-result').style.display = 'block';
+            const list = data.questions.map(q => '<li>' + q + '</li>').join('');
+            resultDiv.innerHTML = '<div class="alert alert-success">✅ <strong>' + data.saved + '개 문제</strong>가 저장되었습니다!<ul class="mt-2 mb-0">' + list + '</ul></div>';
+            resultDiv.style.display = 'block';
+            document.getElementById('image-upload').value = '';
+            document.getElementById('preview-image').style.display = 'none';
         }
     })
     .catch(error => {
         btn.disabled = false;
-        btn.textContent = '🔍 OCR로 텍스트 추출';
-        alert('OCR 처리 실패: ' + error);
+        btn.textContent = '📥 문제 자동 추출 및 저장';
+        resultDiv.innerHTML = '<div class="alert alert-danger">❌ 오류: ' + error + '</div>';
+        resultDiv.style.display = 'block';
     });
-});
-
-document.getElementById('save-ocr-quiz').addEventListener('click', function() {
-    const text = document.getElementById('ocr-text').value;
-
-    // 텍스트에서 문제, 선택지, 정답 추출
-    const lines = text.split('\n').map(line => line.trim()).filter(line => line);
-
-    let question = '';
-    let options = [null, null, null, null];
-    let answer = -1;
-    let questionMode = false;
-
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-
-        // 문제 추출
-        if (/^문제\s*:/.test(line)) {
-            question = line.replace(/^문제\s*:\s*/, '').trim();
-            questionMode = true;
-        }
-        // 선택지 추출 (1. / 1) / ① 형식 모두 지원)
-        else if (/^(1[\.\)\s]|①)/.test(line)) {
-            options[0] = line.replace(/^(1[\.\)\s]+|①\s*)/, '').trim();
-            questionMode = false;
-        } else if (/^(2[\.\)\s]|②)/.test(line)) {
-            options[1] = line.replace(/^(2[\.\)\s]+|②\s*)/, '').trim();
-            questionMode = false;
-        } else if (/^(3[\.\)\s]|③)/.test(line)) {
-            options[2] = line.replace(/^(3[\.\)\s]+|③\s*)/, '').trim();
-            questionMode = false;
-        } else if (/^(4[\.\)\s]|④)/.test(line)) {
-            options[3] = line.replace(/^(4[\.\)\s]+|④\s*)/, '').trim();
-            questionMode = false;
-        }
-        // 정답 추출
-        else if (/^정답\s*:/.test(line)) {
-            const answerMatch = line.match(/[1-4]/);
-            if (answerMatch) {
-                answer = parseInt(answerMatch[0]) - 1;
-            }
-            questionMode = false;
-        }
-        // 다줄 문제 이어붙이기
-        else if (questionMode && question) {
-            question += ' ' + line;
-        }
-    }
-    
-    // 유효성 검사
-    if (!question || question.length < 2) {
-        alert('❌ 문제를 찾을 수 없습니다.\n\n텍스트를 수정해주세요:\n"문제: [문제 내용]"');
-        return;
-    }
-    
-    let missingOptions = [];
-    for (let i = 0; i < 4; i++) {
-        if (!options[i] || options[i].length < 1) {
-            missingOptions.push(i + 1);
-        }
-    }
-    if (missingOptions.length > 0) {
-        alert('❌ 선택지가 부족합니다.\n\n다음 선택지를 텍스트에 추가하세요:\n' + missingOptions.join(', ') + '번');
-        return;
-    }
-    
-    if (answer < 0 || answer > 3) {
-        alert('❌ 정답이 없거나 잘못되었습니다.\n\n텍스트를 확인하고 다음을 추가하세요:\n"정답: [1, 2, 3, 또는 4]"');
-        return;
-    }
-    
-    fetch('/add_quiz', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            question: question,
-            options: options,
-            answer: (answer + 1).toString(),
-            tags: ''
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.error) {
-            alert('❌ 저장 실패: ' + data.error);
-        } else {
-            alert('✅ ' + data.message);
-            document.getElementById('image-upload').value = '';
-            document.getElementById('ocr-text').value = '';
-            document.getElementById('ocr-result').style.display = 'none';
-            document.getElementById('preview-image').style.display = 'none';
-        }
-    })
-    .catch(error => alert('❌ 저장 중 오류: ' + error));
 });

@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify
 import json
 import os
 import random
+import re
 from werkzeug.utils import secure_filename
 import anthropic
 from PIL import Image
@@ -92,68 +93,103 @@ def delete_quiz(index):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def parse_questions(text):
+    questions = []
+    blocks = re.split(r'\n-{2,}\n?', text.strip())
+    for block in blocks:
+        block = block.strip()
+        if not block:
+            continue
+        lines = [l.strip() for l in block.split('\n') if l.strip()]
+        question = ''
+        options = [None, None, None, None]
+        answer = -1
+        question_mode = False
+        for line in lines:
+            if re.match(r'^문제\s*:', line):
+                question = re.sub(r'^문제\s*:\s*', '', line).strip()
+                question_mode = True
+            elif re.match(r'^(1[\.\)\s]|①)', line):
+                options[0] = re.sub(r'^(1[\.\)\s]+|①\s*)', '', line).strip()
+                question_mode = False
+            elif re.match(r'^(2[\.\)\s]|②)', line):
+                options[1] = re.sub(r'^(2[\.\)\s]+|②\s*)', '', line).strip()
+                question_mode = False
+            elif re.match(r'^(3[\.\)\s]|③)', line):
+                options[2] = re.sub(r'^(3[\.\)\s]+|③\s*)', '', line).strip()
+                question_mode = False
+            elif re.match(r'^(4[\.\)\s]|④)', line):
+                options[3] = re.sub(r'^(4[\.\)\s]+|④\s*)', '', line).strip()
+                question_mode = False
+            elif re.match(r'^정답\s*:', line):
+                m = re.search(r'[1-4]', line)
+                if m:
+                    answer = int(m.group()) - 1
+                question_mode = False
+            elif question_mode and question:
+                question += ' ' + line
+        if question and all(opt is not None for opt in options) and 0 <= answer <= 3:
+            questions.append({'question': question, 'options': options, 'answer': answer, 'tags': []})
+    return questions
+
 @app.route('/extract_ocr', methods=['POST'])
 def extract_ocr():
     if 'file' not in request.files:
         return jsonify({'error': '파일이 없습니다'}), 400
-    
     file = request.files['file']
     if file.filename == '':
         return jsonify({'error': '파일을 선택하세요'}), 400
-    
     if not allowed_file(file.filename):
         return jsonify({'error': 'PNG, JPG, JPEG, GIF, BMP 파일만 업로드 가능합니다'}), 400
-    
+
     api_key = os.environ.get('CLAUDE_API_KEY') or os.environ.get('ANTHROPIC_API_KEY')
     if not api_key:
-        return jsonify({'error': 'CLAUDE_API_KEY 환경변수가 설정되지 않았습니다. Railway 환경변수를 확인하세요.'}), 500
+        return jsonify({'error': 'CLAUDE_API_KEY 환경변수가 설정되지 않았습니다.'}), 500
 
     try:
         client = anthropic.Anthropic(api_key=api_key)
-        # 이미지를 base64로 인코딩
         image = Image.open(file.stream)
-        # RGBA, 팔레트 등 다양한 모드 처리
         if image.mode != 'RGB':
             image = image.convert('RGB')
-        # 핸드폰 대용량 사진 리사이즈 (Claude API 전송 최적화)
         max_dim = 1600
         if max(image.size) > max_dim:
             ratio = max_dim / max(image.size)
-            new_size = (int(image.size[0] * ratio), int(image.size[1] * ratio))
-            image = image.resize(new_size, Image.LANCZOS)
+            image = image.resize((int(image.size[0] * ratio), int(image.size[1] * ratio)), Image.LANCZOS)
         buffered = io.BytesIO()
         image.save(buffered, format="PNG")
         image_data = base64.standard_b64encode(buffered.getvalue()).decode('utf-8')
-        
-        # Claude Vision API로 이미지 분석
+
         message = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
+            model="claude-haiku-4-5-20251001",
             max_tokens=2048,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": "image/png",
-                                "data": image_data
-                            }
-                        },
-                        {
-                            "type": "text",
-                            "text": "이 사진 속 4지선다 문제 하나를 추출해줘. 사진이 회전되어 있어도 텍스트를 바르게 읽어줘. 사진에 문제가 여러 개면 첫 번째 문제만 추출해.\n\n선택지가 ①②③④ 또는 가나다라 형식이어도 반드시 아래처럼 1. 2. 3. 4. 형식으로 변환해서 출력해.\n마크다운(**볼드** 등) 절대 금지. 다른 설명 없이 아래 형식만:\n\n문제: [문제 내용]\n1. [선택지1]\n2. [선택지2]\n3. [선택지3]\n4. [선택지4]\n정답: [1 또는 2 또는 3 또는 4]\n\n정답 표시가 없으면 정답 줄은 생략해도 됨."
-                        }
-                    ]
-                }
-            ]
+            messages=[{
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {"type": "base64", "media_type": "image/png", "data": image_data}
+                    },
+                    {
+                        "type": "text",
+                        "text": "이 사진 속 모든 4지선다 문제를 추출해줘. 사진이 회전되어 있어도 바르게 읽어줘.\n문제가 여러 개면 각 문제를 --- 로 구분해줘.\n선택지가 ①②③④ 형식이어도 반드시 1. 2. 3. 4. 형식으로 변환해.\n마크다운 금지. 형식 외 설명 금지.\n\n문제: [문제 내용]\n1. [선택지1]\n2. [선택지2]\n3. [선택지3]\n4. [선택지4]\n정답: [1 또는 2 또는 3 또는 4]\n---"
+                    }
+                ]
+            }]
         )
-        
+
         text = message.content[0].text
-        return jsonify({'text': text})
+        questions = parse_questions(text)
+
+        if not questions:
+            return jsonify({'error': '문제를 인식하지 못했습니다. 사진을 더 선명하게 찍어주세요.', 'raw': text}), 400
+
+        quizzes = load_quizzes()
+        quizzes.extend(questions)
+        save_quizzes(quizzes)
+
+        return jsonify({'saved': len(questions), 'questions': [q['question'] for q in questions]})
     except Exception as e:
-        return jsonify({'error': f'OCR 처리 중 오류: {str(e)}'}), 500
+        return jsonify({'error': f'오류: {str(e)}'}), 500
 
 @app.route('/take_quiz', methods=['POST'])
 def take_quiz():
