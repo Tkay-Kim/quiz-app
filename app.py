@@ -63,7 +63,7 @@ def debug_ocr():
         client = anthropic.Anthropic(api_key=os.environ.get('CLAUDE_API_KEY'))
         step = 'api_call'
         msg = client.messages.create(
-            model='claude-3-5-haiku-20241022',
+            model='claude-3-haiku-20240307',
             max_tokens=50,
             timeout=20,
             messages=[{'role':'user','content':[
@@ -190,7 +190,7 @@ def extract_ocr():
         image_data = base64.standard_b64encode(buffered.getvalue()).decode('utf-8')
 
         message = client.messages.create(
-            model="claude-3-5-haiku-20241022",
+            model="claude-3-haiku-20240307",
             max_tokens=2048,
             timeout=25,
             messages=[{
