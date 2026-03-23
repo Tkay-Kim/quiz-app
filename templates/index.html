@@ -9,21 +9,21 @@
 </head>
 <body>
     <div class="container mt-5">
-        <h1 class="text-center mb-4">4지선다 퀴즈 프로그램</h1>
+        <h1 class="text-center mb-5">📚 4지선다 퀴즈 프로그램</h1>
         <ul class="nav nav-tabs" id="myTab" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="add-tab" data-bs-toggle="tab" data-bs-target="#add" type="button" role="tab">문제 만들기</button>
+                <button class="nav-link active" id="add-tab" data-bs-toggle="tab" data-bs-target="#add" type="button" role="tab">✍️ 문제 만들기</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="take-tab" data-bs-toggle="tab" data-bs-target="#take" type="button" role="tab">문제 풀기</button>
+                <button class="nav-link" id="take-tab" data-bs-toggle="tab" data-bs-target="#take" type="button" role="tab">🧠 문제 풀기</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="manage-tab" data-bs-toggle="tab" data-bs-target="#manage" type="button" role="tab">문제 관리</button>
+                <button class="nav-link" id="manage-tab" data-bs-toggle="tab" data-bs-target="#manage" type="button" role="tab">⚙️ 문제 관리</button>
             </li>
         </ul>
         <div class="tab-content" id="myTabContent">
             <div class="tab-pane fade show active" id="add" role="tabpanel">
-                <h2 class="mt-3">퀴즈 추가</h2>
+                <h2 class="mt-3">✍️ 새 퀴즈 추가</h2>
                 <form id="add-quiz-form" class="row g-3">
                     <div class="col-12">
                         <label for="question" class="form-label">문제:</label>
@@ -54,25 +54,25 @@
                         <input type="text" class="form-control" id="tags" placeholder="예: 외환, 기초">
                     </div>
                     <div class="col-12">
-                        <button type="submit" class="btn btn-primary">추가</button>
+                        <button type="submit" class="btn btn-primary">➕ 퀴즈 추가</button>
                     </div>
                 </form>
                 <div id="add-message" class="mt-3"></div>
             </div>
             <div class="tab-pane fade" id="take" role="tabpanel">
-                <h2 class="mt-3">퀴즈 풀기</h2>
+                <h2 class="mt-3">🧠 퀴즈 도전하기</h2>
                 <div class="row g-3">
                     <div class="col-12">
                         <label for="tag-filter" class="form-label">태그 필터 (콤마로 구분, 빈 칸이면 전체):</label>
                         <input type="text" class="form-control" id="tag-filter" placeholder="예: 외환, 기초">
                     </div>
                     <div class="col-12">
-                        <button id="start-quiz" class="btn btn-success">퀴즈 시작</button>
+                        <button id="start-quiz" class="btn btn-success">🚀 퀴즈 시작</button>
                     </div>
                 </div>
                 <div id="quiz-container" class="mt-4" style="display:none;">
                     <div id="quiz-questions"></div>
-                    <button id="submit-quiz" class="btn btn-primary mt-3">제출</button>
+                    <button id="submit-quiz" class="btn btn-primary mt-3">✅ 답 제출</button>
                 </div>
                 <div id="results" class="mt-4" style="display:none;">
                     <h3>결과</h3>
@@ -81,8 +81,8 @@
                 </div>
             </div>
             <div class="tab-pane fade" id="manage" role="tabpanel">
-                <h2 class="mt-3">문제 관리</h2>
-                <button id="load-quizzes-btn" class="btn btn-info mb-3">문제 목록 불러오기</button>
+                <h2 class="mt-3">⚙️ 퀴즈 관리</h2>
+                <button id="load-quizzes-btn" class="btn btn-info mb-3">📋 목록 불러오기</button>
                 <div id="quizzes-list"></div>
             </div>
         </div>

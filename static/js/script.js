@@ -123,7 +123,7 @@ function displayQuizzesList(quizzes) {
                 </p>
                 <p class="card-text"><strong>정답:</strong> ${quiz.answer + 1}번</p>
                 ${quiz.tags && quiz.tags.length > 0 ? `<p class="card-text"><strong>태그:</strong> ${quiz.tags.join(', ')}</p>` : ''}
-                <button class="btn btn-danger btn-sm" onclick="deleteQuiz(${index})">삭제</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteQuiz(${index})">🗑️ 삭제</button>
             </div>
         `;
         container.appendChild(div);
