@@ -11,6 +11,11 @@ import io
 
 app = Flask(__name__)
 
+@app.after_request
+def no_cache(response):
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate'
+    return response
+
 @app.errorhandler(Exception)
 def handle_exception(e):
     return jsonify({'error': str(e)}), 500
@@ -132,7 +137,7 @@ def parse_questions(text):
             questions.append({'question': question, 'options': options, 'answer': answer, 'tags': []})
     return questions
 
-@app.route('/ocr', methods=['POST'])
+@app.route('/scan', methods=['POST'])
 def extract_ocr():
     data = request.json
     if not data or 'image' not in data:
