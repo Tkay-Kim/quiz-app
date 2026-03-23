@@ -189,28 +189,28 @@ document.getElementById('save-ocr-quiz').addEventListener('click', function() {
     const lines = text.split('\n').map(line => line.trim()).filter(line => line);
     
     let question = '';
-    let options = [];
+    let options = [null, null, null, null];
     let answer = -1;
     
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         
         // 문제 추출
-        if (line.startsWith('문제:') || line.startsWith('문제 :')) {
-            question = line.replace(/^문제\s*:?\s*/, '').trim();
+        if (line.includes('문제:') || line.includes('문제 :')) {
+            question = line.split(/문제\s*:?\s*/)[1]?.trim() || '';
         } 
-        // 선택지 추출 (1. 또는 1) 또는 1번 형식 모두 지원)
-        else if (line.match(/^[1]\s*[\.\)\번]/)) {
-            options[0] = line.replace(/^[1]\s*[\.\)\번]\s*/, '').trim();
-        } else if (line.match(/^[2]\s*[\.\)\번]/)) {
-            options[1] = line.replace(/^[2]\s*[\.\)\번]\s*/, '').trim();
-        } else if (line.match(/^[3]\s*[\.\)\번]/)) {
-            options[2] = line.replace(/^[3]\s*[\.\)\번]\s*/, '').trim();
-        } else if (line.match(/^[4]\s*[\.\)\번]/)) {
-            options[3] = line.replace(/^[4]\s*[\.\)\번]\s*/, '').trim();
+        // 선택지 추출 (숫자로 시작하면서 . ) 등으로 구분)
+        else if (/^1[\.\)\s]/.test(line)) {
+            options[0] = line.replace(/^1[\.\)\s]+/, '').trim();
+        } else if (/^2[\.\)\s]/.test(line)) {
+            options[1] = line.replace(/^2[\.\)\s]+/, '').trim();
+        } else if (/^3[\.\)\s]/.test(line)) {
+            options[2] = line.replace(/^3[\.\)\s]+/, '').trim();
+        } else if (/^4[\.\)\s]/.test(line)) {
+            options[3] = line.replace(/^4[\.\)\s]+/, '').trim();
         }
         // 정답 추출
-        else if (line.startsWith('정답:') || line.startsWith('정답 :')) {
+        else if (line.includes('정답:') || line.includes('정답 :')) {
             const answerMatch = line.match(/[1-4]/);
             if (answerMatch) {
                 answer = parseInt(answerMatch[0]) - 1;
@@ -219,16 +219,24 @@ document.getElementById('save-ocr-quiz').addEventListener('click', function() {
     }
     
     // 유효성 검사
-    if (!question) {
-        alert('문제를 찾을 수 없습니다. OCR 텍스트를 확인하고 "문제:" 부분을 수정하세요.');
+    if (!question || question.length < 2) {
+        alert('❌ 문제를 찾을 수 없습니다.\n\n텍스트를 수정해주세요:\n"문제: [문제 내용]"');
         return;
     }
-    if (options.length !== 4 || options.some(opt => !opt)) {
-        alert('4개의 선택지를 모두 찾을 수 없습니다. OCR 텍스트를 확인하고 "1. 2. 3. 4." 부분을 수정하세요.');
+    
+    let missingOptions = [];
+    for (let i = 0; i < 4; i++) {
+        if (!options[i] || options[i].length < 1) {
+            missingOptions.push(i + 1);
+        }
+    }
+    if (missingOptions.length > 0) {
+        alert('❌ 선택지가 부족합니다.\n\n다음 선택지를 텍스트에 추가하세요:\n' + missingOptions.join(', ') + '번');
         return;
     }
+    
     if (answer < 0 || answer > 3) {
-        alert('정답을 찾을 수 없습니다. OCR 텍스트를 확인하고 "정답: [1-4]" 부분을 수정하세요.');
+        alert('❌ 정답이 없거나 잘못되었습니다.\n\n텍스트를 확인하고 다음을 추가하세요:\n"정답: [1, 2, 3, 또는 4]"');
         return;
     }
     
@@ -246,10 +254,15 @@ document.getElementById('save-ocr-quiz').addEventListener('click', function() {
     })
     .then(response => response.json())
     .then(data => {
-        alert(data.message);
-        document.getElementById('image-upload').value = '';
-        document.getElementById('ocr-text').value = '';
-        document.getElementById('ocr-result').style.display = 'none';
-        document.getElementById('preview-image').style.display = 'none';
-    });
+        if (data.error) {
+            alert('❌ 저장 실패: ' + data.error);
+        } else {
+            alert('✅ ' + data.message);
+            document.getElementById('image-upload').value = '';
+            document.getElementById('ocr-text').value = '';
+            document.getElementById('ocr-result').style.display = 'none';
+            document.getElementById('preview-image').style.display = 'none';
+        }
+    })
+    .catch(error => alert('❌ 저장 중 오류: ' + error));
 });
