@@ -213,18 +213,18 @@ document.getElementById('save-ocr-quiz').addEventListener('click', function() {
             question = line.replace(/^문제\s*:\s*/, '').trim();
             questionMode = true;
         }
-        // 선택지 추출 (숫자로 시작하면서 . ) 등으로 구분)
-        else if (/^1[\.\)\s]/.test(line)) {
-            options[0] = line.replace(/^1[\.\)\s]+/, '').trim();
+        // 선택지 추출 (1. / 1) / ① 형식 모두 지원)
+        else if (/^(1[\.\)\s]|①)/.test(line)) {
+            options[0] = line.replace(/^(1[\.\)\s]+|①\s*)/, '').trim();
             questionMode = false;
-        } else if (/^2[\.\)\s]/.test(line)) {
-            options[1] = line.replace(/^2[\.\)\s]+/, '').trim();
+        } else if (/^(2[\.\)\s]|②)/.test(line)) {
+            options[1] = line.replace(/^(2[\.\)\s]+|②\s*)/, '').trim();
             questionMode = false;
-        } else if (/^3[\.\)\s]/.test(line)) {
-            options[2] = line.replace(/^3[\.\)\s]+/, '').trim();
+        } else if (/^(3[\.\)\s]|③)/.test(line)) {
+            options[2] = line.replace(/^(3[\.\)\s]+|③\s*)/, '').trim();
             questionMode = false;
-        } else if (/^4[\.\)\s]/.test(line)) {
-            options[3] = line.replace(/^4[\.\)\s]+/, '').trim();
+        } else if (/^(4[\.\)\s]|④)/.test(line)) {
+            options[3] = line.replace(/^(4[\.\)\s]+|④\s*)/, '').trim();
             questionMode = false;
         }
         // 정답 추출
