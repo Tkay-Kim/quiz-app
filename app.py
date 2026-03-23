@@ -48,19 +48,33 @@ def debug_ocr():
     try:
         step = 'start'
         data = request.json
-        step = 'json_parsed'
-        if not data or 'image' not in data:
-            return jsonify({'step': step, 'error': 'no image key'})
-        step = 'image_key_found'
-        raw = data['image'][:20]
-        step = 'image_read'
-        api_key = os.environ.get('CLAUDE_API_KEY', '')[:10]
-        step = 'apikey_read'
+        step = 'image_key'
+        img_data = data['image']
+        step = 'b64_decode'
+        raw = img_data.split(',')[1] if ',' in img_data else img_data
+        img_bytes = base64.b64decode(raw)
+        step = 'pil_open'
+        image = Image.open(io.BytesIO(img_bytes)).convert('RGB')
+        step = 'pil_save'
+        buf = io.BytesIO()
+        image.save(buf, format='PNG')
+        image_data = base64.standard_b64encode(buf.getvalue()).decode('utf-8')
+        step = 'client_init'
         client = anthropic.Anthropic(api_key=os.environ.get('CLAUDE_API_KEY'))
-        step = 'client_created'
-        return jsonify({'step': step, 'ok': True, 'key_prefix': api_key})
+        step = 'api_call'
+        msg = client.messages.create(
+            model='claude-3-5-haiku-20241022',
+            max_tokens=50,
+            timeout=20,
+            messages=[{'role':'user','content':[
+                {'type':'image','source':{'type':'base64','media_type':'image/png','data':image_data}},
+                {'type':'text','text':'이 이미지를 한 단어로 설명해줘.'}
+            ]}]
+        )
+        step = 'done'
+        return jsonify({'step': step, 'ok': True, 'response': msg.content[0].text})
     except BaseException as e:
-        return jsonify({'step': step, 'error': type(e).__name__ + ': ' + str(e)[:200]})
+        return jsonify({'step': step, 'error': type(e).__name__ + ': ' + str(e)[:300]})
 
 @app.route('/add_quiz', methods=['POST'])
 def add_quiz():
