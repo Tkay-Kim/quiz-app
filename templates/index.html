@@ -17,6 +17,9 @@
             <li class="nav-item" role="presentation">
                 <button class="nav-link" id="take-tab" data-bs-toggle="tab" data-bs-target="#take" type="button" role="tab">문제 풀기</button>
             </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="manage-tab" data-bs-toggle="tab" data-bs-target="#manage" type="button" role="tab">문제 관리</button>
+            </li>
         </ul>
         <div class="tab-content" id="myTabContent">
             <div class="tab-pane fade show active" id="add" role="tabpanel">
@@ -76,6 +79,11 @@
                     <div id="score" class="alert alert-info"></div>
                     <div id="details"></div>
                 </div>
+            </div>
+            <div class="tab-pane fade" id="manage" role="tabpanel">
+                <h2 class="mt-3">문제 관리</h2>
+                <button id="load-quizzes-btn" class="btn btn-info mb-3">문제 목록 불러오기</button>
+                <div id="quizzes-list"></div>
             </div>
         </div>
     </div>

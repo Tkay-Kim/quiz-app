@@ -95,3 +95,50 @@ document.getElementById('submit-quiz').addEventListener('click', function() {
         document.getElementById('results').style.display = 'block';
     });
 });
+
+document.getElementById('load-quizzes-btn').addEventListener('click', function() {
+    fetch('/get_all_quizzes')
+    .then(response => response.json())
+    .then(quizzes => {
+        if (quizzes.length === 0) {
+            document.getElementById('quizzes-list').innerHTML = '<p>저장된 퀴즈가 없습니다.</p>';
+            return;
+        }
+        displayQuizzesList(quizzes);
+    });
+});
+
+function displayQuizzesList(quizzes) {
+    const container = document.getElementById('quizzes-list');
+    container.innerHTML = '';
+    quizzes.forEach((quiz, index) => {
+        const div = document.createElement('div');
+        div.className = 'card mb-3';
+        div.innerHTML = `
+            <div class="card-body">
+                <h5 class="card-title">${quiz.question}</h5>
+                <p class="card-text">
+                    <strong>선택지:</strong><br>
+                    ${quiz.options.map((opt, i) => `${i+1}. ${opt}`).join('<br>')}
+                </p>
+                <p class="card-text"><strong>정답:</strong> ${quiz.answer + 1}번</p>
+                ${quiz.tags && quiz.tags.length > 0 ? `<p class="card-text"><strong>태그:</strong> ${quiz.tags.join(', ')}</p>` : ''}
+                <button class="btn btn-danger btn-sm" onclick="deleteQuiz(${index})">삭제</button>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function deleteQuiz(index) {
+    if (confirm('이 문제를 삭제하시겠습니까?')) {
+        fetch(`/delete_quiz/${index}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            alert(data.message);
+            document.getElementById('load-quizzes-btn').click();
+        });
+    }
+}

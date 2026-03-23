@@ -58,6 +58,20 @@ def get_quizzes():
     random.shuffle(quizzes)
     return jsonify(quizzes)
 
+@app.route('/get_all_quizzes')
+def get_all_quizzes():
+    quizzes = load_quizzes()
+    return jsonify(quizzes)
+
+@app.route('/delete_quiz/<int:index>', methods=['DELETE'])
+def delete_quiz(index):
+    quizzes = load_quizzes()
+    if 0 <= index < len(quizzes):
+        quizzes.pop(index)
+        save_quizzes(quizzes)
+        return jsonify({'message': '퀴즈가 삭제되었습니다!'})
+    return jsonify({'error': '유효하지 않은 인덱스'}), 400
+
 @app.route('/take_quiz', methods=['POST'])
 def take_quiz():
     data = request.json
