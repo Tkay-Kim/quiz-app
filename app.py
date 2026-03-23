@@ -14,9 +14,6 @@ app = Flask(__name__)
 def handle_exception(e):
     return jsonify({'error': str(e)}), 500
 
-# Claude API 클라이언트 초기화
-client = anthropic.Anthropic(api_key=os.environ.get('CLAUDE_API_KEY'))
-
 # 파일 업로드 설정
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp'}
@@ -107,7 +104,12 @@ def extract_ocr():
     if not allowed_file(file.filename):
         return jsonify({'error': 'PNG, JPG, JPEG, GIF, BMP 파일만 업로드 가능합니다'}), 400
     
+    api_key = os.environ.get('CLAUDE_API_KEY') or os.environ.get('ANTHROPIC_API_KEY')
+    if not api_key:
+        return jsonify({'error': 'CLAUDE_API_KEY 환경변수가 설정되지 않았습니다. Railway 환경변수를 확인하세요.'}), 500
+
     try:
+        client = anthropic.Anthropic(api_key=api_key)
         # 이미지를 base64로 인코딩
         image = Image.open(file.stream)
         # RGBA, 팔레트 등 다양한 모드 처리
