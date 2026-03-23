@@ -10,6 +10,10 @@ import io
 
 app = Flask(__name__)
 
+@app.errorhandler(Exception)
+def handle_exception(e):
+    return jsonify({'error': str(e)}), 500
+
 # Claude API 클라이언트 초기화
 client = anthropic.Anthropic(api_key=os.environ.get('CLAUDE_API_KEY'))
 

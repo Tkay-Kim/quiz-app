@@ -174,7 +174,14 @@ document.getElementById('extract-ocr-btn').addEventListener('click', function() 
         method: 'POST',
         body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(text => {
+                throw new Error('서버 오류 ' + response.status + ': ' + text.substring(0, 300));
+            });
+        }
+        return response.json();
+    })
     .then(data => {
         btn.disabled = false;
         btn.textContent = '🔍 OCR로 텍스트 추출';
