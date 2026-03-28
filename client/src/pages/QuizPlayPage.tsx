@@ -1,0 +1,144 @@
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { quizApi } from '../api/quiz.api'
+import { useQuizStore } from '../store/quizStore'
+import ProgressBar from '../components/quiz/ProgressBar'
+import Button from '../components/common/Button'
+import TagBadge from '../components/tag/TagBadge'
+import LoadingSpinner from '../components/common/LoadingSpinner'
+
+interface Question {
+  id: number
+  content: string
+  choices: { id: number; content: string; order: number }[]
+  tags: { tag: { id: number; name: string; color: string } }[]
+}
+
+export default function QuizPlayPage() {
+  const { sessionId } = useParams<{ sessionId: string }>()
+  const navigate = useNavigate()
+  const { currentQuestionIndex, answers, setAnswer, setCurrentIndex, reset } = useQuizStore()
+  const [questions, setQuestions] = useState<Question[]>([])
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    reset()
+    quizApi.getSession(Number(sessionId)).then(res => {
+      setQuestions(res.data.data.questions)
+      setLoading(false)
+    })
+  }, [sessionId])
+
+  const currentQ = questions[currentQuestionIndex]
+  const selectedChoiceId = currentQ ? answers[currentQ.id] : undefined
+
+  const handleSelect = async (choiceId: number) => {
+    if (!currentQ) return
+    setAnswer(currentQ.id, choiceId)
+    await quizApi.submitAnswer(Number(sessionId), currentQ.id, choiceId)
+  }
+
+  const handleNext = () => {
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentIndex(currentQuestionIndex + 1)
+    }
+  }
+
+  const handlePrev = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentIndex(currentQuestionIndex - 1)
+    }
+  }
+
+  const handleComplete = async () => {
+    setSubmitting(true)
+    await quizApi.complete(Number(sessionId))
+    navigate(`/quiz/${sessionId}/result`)
+  }
+
+  if (loading) return <div className="min-h-screen bg-gray-50 flex items-center justify-center"><LoadingSpinner /></div>
+
+  if (questions.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-500 mb-4">출제할 문제가 없습니다.</p>
+          <Button onClick={() => navigate('/questions/new')}>문제 등록하기</Button>
+        </div>
+      </div>
+    )
+  }
+
+  const isLastQuestion = currentQuestionIndex === questions.length - 1
+  const answeredCount = Object.keys(answers).length
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+        <div className="flex items-center justify-between">
+          <button onClick={() => navigate('/')} className="text-sm text-gray-500 hover:text-gray-700">← 나가기</button>
+          <span className="text-sm text-gray-500">{answeredCount}/{questions.length} 답변 완료</span>
+        </div>
+
+        <ProgressBar current={currentQuestionIndex + 1} total={questions.length} />
+
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 space-y-6">
+          <div className="flex flex-wrap gap-1.5">
+            {currentQ.tags.map(qt => (
+              <TagBadge key={qt.tag.id} name={qt.tag.name} color={qt.tag.color} />
+            ))}
+          </div>
+
+          <p className="text-lg font-medium text-gray-900 leading-relaxed">{currentQ.content}</p>
+
+          <div className="space-y-3">
+            {currentQ.choices.map((choice) => (
+              <button
+                key={choice.id}
+                onClick={() => handleSelect(choice.id)}
+                className={`w-full text-left px-5 py-4 rounded-xl border-2 transition-all text-sm font-medium ${
+                  selectedChoiceId === choice.id
+                    ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
+                    : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50 text-gray-700'
+                }`}
+              >
+                <span className="text-gray-400 mr-2">{choice.order}.</span>
+                {choice.content}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex justify-between">
+          <Button variant="secondary" onClick={handlePrev} disabled={currentQuestionIndex === 0}>← 이전</Button>
+          {isLastQuestion ? (
+            <Button onClick={handleComplete} disabled={submitting}>
+              {submitting ? '제출 중...' : '제출하기'}
+            </Button>
+          ) : (
+            <Button onClick={handleNext}>다음 →</Button>
+          )}
+        </div>
+
+        <div className="flex flex-wrap gap-2 justify-center">
+          {questions.map((q, i) => (
+            <button
+              key={q.id}
+              onClick={() => setCurrentIndex(i)}
+              className={`w-8 h-8 rounded-full text-xs font-medium transition-colors ${
+                i === currentQuestionIndex
+                  ? 'bg-indigo-600 text-white'
+                  : answers[q.id] !== undefined
+                    ? 'bg-indigo-100 text-indigo-700'
+                    : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+              }`}
+            >
+              {i + 1}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
