@@ -10,7 +10,8 @@ import LoadingSpinner from '../components/common/LoadingSpinner'
 interface Question {
   id: number
   content: string
-  choices: { id: number; content: string; order: number }[]
+  explanation?: string
+  choices: { id: number; content: string; order: number; isCorrect: boolean }[]
   tags: { tag: { id: number; name: string; color: string } }[]
 }
 
@@ -21,6 +22,7 @@ export default function QuizPlayPage() {
   const [questions, setQuestions] = useState<Question[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [showAnswer, setShowAnswer] = useState(false)
 
   useEffect(() => {
     reset()
@@ -29,6 +31,11 @@ export default function QuizPlayPage() {
       setLoading(false)
     })
   }, [sessionId])
+
+  // Hide answer when moving to a different question
+  useEffect(() => {
+    setShowAnswer(false)
+  }, [currentQuestionIndex])
 
   const currentQ = questions[currentQuestionIndex]
   const selectedChoiceId = currentQ ? answers[currentQ.id] : undefined
@@ -72,6 +79,17 @@ export default function QuizPlayPage() {
 
   const isLastQuestion = currentQuestionIndex === questions.length - 1
   const answeredCount = Object.keys(answers).length
+  const correctChoice = currentQ?.choices.find(c => c.isCorrect)
+
+  const getChoiceStyle = (choice: { id: number; isCorrect: boolean }) => {
+    if (showAnswer) {
+      if (choice.isCorrect) return 'border-green-500 bg-green-50 text-green-800'
+      if (selectedChoiceId === choice.id && !choice.isCorrect) return 'border-red-400 bg-red-50 text-red-700'
+      return 'border-gray-200 text-gray-500'
+    }
+    if (selectedChoiceId === choice.id) return 'border-indigo-600 bg-indigo-50 text-indigo-700'
+    return 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50 text-gray-700'
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -96,17 +114,35 @@ export default function QuizPlayPage() {
             {currentQ.choices.map((choice) => (
               <button
                 key={choice.id}
-                onClick={() => handleSelect(choice.id)}
-                className={`w-full text-left px-5 py-4 rounded-xl border-2 transition-all text-sm font-medium ${
-                  selectedChoiceId === choice.id
-                    ? 'border-indigo-600 bg-indigo-50 text-indigo-700'
-                    : 'border-gray-200 hover:border-indigo-300 hover:bg-gray-50 text-gray-700'
-                }`}
+                onClick={() => !showAnswer && handleSelect(choice.id)}
+                className={`w-full text-left px-5 py-4 rounded-xl border-2 transition-all text-sm font-medium ${getChoiceStyle(choice)} ${showAnswer ? 'cursor-default' : ''}`}
               >
                 <span className="text-gray-400 mr-2">{choice.order}.</span>
                 {choice.content}
+                {showAnswer && choice.isCorrect && <span className="ml-2 text-green-600 font-bold">✓ 정답</span>}
               </button>
             ))}
+          </div>
+
+          {/* Answer reveal section */}
+          <div className="border-t border-gray-100 pt-4">
+            <button
+              onClick={() => setShowAnswer(prev => !prev)}
+              className={`w-full py-2.5 rounded-lg text-sm font-medium transition-colors border ${
+                showAnswer
+                  ? 'border-gray-300 bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  : 'border-indigo-300 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+              }`}
+            >
+              {showAnswer ? '정답 숨기기' : '정답 확인'}
+            </button>
+
+            {showAnswer && currentQ.explanation && (
+              <div className="mt-3 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                <p className="text-xs font-semibold text-blue-600 mb-1">해설</p>
+                <p className="text-sm text-blue-900 leading-relaxed">{currentQ.explanation}</p>
+              </div>
+            )}
           </div>
         </div>
 

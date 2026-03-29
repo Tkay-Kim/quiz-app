@@ -77,5 +77,8 @@ export async function updateQuestion(id: number, data: QuestionInput) {
 }
 
 export async function deleteQuestion(id: number) {
+  await prisma.sessionAnswer.deleteMany({ where: { questionId: id } })
+  await prisma.choice.deleteMany({ where: { questionId: id } })
+  await prisma.questionTag.deleteMany({ where: { questionId: id } })
   return prisma.question.delete({ where: { id } })
 }

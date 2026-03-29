@@ -10,8 +10,7 @@ import LoadingSpinner from '../components/common/LoadingSpinner'
 export default function QuestionsPage() {
   const [search, setSearch] = useState('')
   const [tagId, setTagId] = useState<number | undefined>()
-  const [difficulty, setDifficulty] = useState('')
-  const { questions, total, loading, refetch } = useQuestions({ search, tagId, difficulty: difficulty || undefined })
+  const { questions, total, loading, refetch } = useQuestions({ search, tagId })
   const { tags } = useTags()
 
   const handleDelete = async (q: Question) => {
@@ -19,9 +18,6 @@ export default function QuestionsPage() {
     await questionsApi.delete(q.id)
     refetch()
   }
-
-  const difficultyLabel: Record<string, string> = { EASY: '쉬움', MEDIUM: '보통', HARD: '어려움' }
-  const difficultyColor: Record<string, string> = { EASY: 'text-green-600', MEDIUM: 'text-yellow-600', HARD: 'text-red-600' }
 
   return (
     <div className="space-y-6">
@@ -42,13 +38,6 @@ export default function QuestionsPage() {
           <option value="">전체 태그</option>
           {tags.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
-        <select className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300"
-          value={difficulty} onChange={e => setDifficulty(e.target.value)}>
-          <option value="">전체 난이도</option>
-          <option value="EASY">쉬움</option>
-          <option value="MEDIUM">보통</option>
-          <option value="HARD">어려움</option>
-        </select>
       </div>
 
       {loading ? <LoadingSpinner /> : (
@@ -65,9 +54,6 @@ export default function QuestionsPage() {
                   <p className="text-gray-900 font-medium leading-relaxed">{q.content}</p>
                   <div className="flex flex-wrap gap-2 mt-2 items-center">
                     {q.tags.map(qt => <TagBadge key={qt.tag.id} name={qt.tag.name} color={qt.tag.color} />)}
-                    <span className={`text-xs font-medium ${difficultyColor[q.difficulty]}`}>
-                      {difficultyLabel[q.difficulty]}
-                    </span>
                   </div>
                 </div>
                 <div className="flex gap-2 shrink-0">

@@ -58,7 +58,7 @@ export async function getSession(sessionId: number) {
   const questions = await prisma.question.findMany({
     where: { id: { in: questionIds } },
     include: {
-      choices: { orderBy: { order: 'asc' }, select: { id: true, content: true, order: true } },
+      choices: { orderBy: { order: 'asc' }, select: { id: true, content: true, order: true, isCorrect: true } },
       tags: { include: { tag: true } }
     }
   })

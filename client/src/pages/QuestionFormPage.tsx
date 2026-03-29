@@ -5,12 +5,6 @@ import { useTags } from '../hooks/useTags'
 import Button from '../components/common/Button'
 import TagSelector from '../components/tag/TagSelector'
 
-const DIFFICULTY_OPTIONS = [
-  { value: 'EASY', label: '쉬움' },
-  { value: 'MEDIUM', label: '보통' },
-  { value: 'HARD', label: '어려움' }
-]
-
 export default function QuestionFormPage() {
   const navigate = useNavigate()
   const { id } = useParams()
@@ -19,7 +13,7 @@ export default function QuestionFormPage() {
 
   const [content, setContent] = useState('')
   const [explanation, setExplanation] = useState('')
-  const [difficulty, setDifficulty] = useState<'EASY' | 'MEDIUM' | 'HARD'>('MEDIUM')
+  const difficulty = 'MEDIUM' as const
   const [choices, setChoices] = useState([
     { content: '', isCorrect: false, order: 1 },
     { content: '', isCorrect: false, order: 2 },
@@ -35,7 +29,6 @@ export default function QuestionFormPage() {
       const q = res.data.data
       setContent(q.content)
       setExplanation(q.explanation || '')
-      setDifficulty(q.difficulty)
       setChoices(q.choices.map(c => ({ content: c.content, isCorrect: c.isCorrect, order: c.order })))
       setSelectedTagIds(q.tags.map(qt => qt.tag.id))
     })
@@ -122,26 +115,6 @@ export default function QuestionFormPage() {
               value={explanation}
               onChange={e => setExplanation(e.target.value)}
             />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">난이도</label>
-            <div className="flex gap-3">
-              {DIFFICULTY_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setDifficulty(opt.value as any)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                    difficulty === opt.value
-                      ? 'bg-indigo-600 text-white border-indigo-600'
-                      : 'bg-white text-gray-600 border-gray-300 hover:border-indigo-400'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
           </div>
 
           <div>

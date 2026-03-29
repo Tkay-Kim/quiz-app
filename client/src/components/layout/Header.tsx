@@ -13,7 +13,7 @@ export default function Header() {
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-        <Link to="/" className="text-xl font-bold text-indigo-600">퀴즈 메이커</Link>
+        <Link to="/" className="text-xl font-bold text-indigo-600">빅분기 마스터</Link>
         <nav className="flex gap-6">
           {navItems.map(item => (
             <Link
