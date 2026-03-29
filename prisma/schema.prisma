@@ -71,8 +71,8 @@ model SessionAnswer {
   choiceId   Int?
   isCorrect  Boolean?
   session    QuizSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  question   Question    @relation(fields: [questionId], references: [id])
-  choice     Choice?     @relation(fields: [choiceId], references: [id])
+  question   Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  choice     Choice?     @relation(fields: [choiceId], references: [id], onDelete: SetNull)
 }
 
 enum Difficulty {
