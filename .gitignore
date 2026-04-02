@@ -1,8 +1,5 @@
-node_modules/
-dist/
-client/dist/
-.env
-*.log
-prisma/dev.db
-prisma/dev.db-journal
-prisma/migrations/
+.venv/
+__pycache__/
+*.pyc
+uploads/
+*.env
