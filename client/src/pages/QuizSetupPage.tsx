@@ -64,12 +64,12 @@ export default function QuizSetupPage() {
               문제 수: <span className="text-indigo-600 font-bold">{count}문제</span>
             </label>
             <input
-              type="range" min={1} max={50} value={count}
+              type="range" min={1} max={80} value={count}
               onChange={e => setCount(Number(e.target.value))}
               className="w-full accent-indigo-600"
             />
             <div className="flex justify-between text-xs text-gray-400 mt-1">
-              <span>1</span><span>50</span>
+              <span>1</span><span>80</span>
             </div>
           </div>
         )}
