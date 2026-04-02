@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import ReactMarkdown from 'react-markdown'
 import { quizApi } from '../api/quiz.api'
 import { useQuizStore } from '../store/quizStore'
 import ProgressBar from '../components/quiz/ProgressBar'
@@ -37,6 +38,33 @@ export default function QuizPlayPage() {
     setShowAnswer(false)
   }, [currentQuestionIndex])
 
+  const [quizDone, setQuizDone] = useState(false)
+
+  // 뒤로가기 / 새로고침 / 탭닫기 차단
+  useEffect(() => {
+    if (quizDone) return
+
+    // 뒤로가기 차단용 더미 히스토리 추가
+    window.history.pushState(null, '', window.location.href)
+
+    const onPopState = () => {
+      if (window.confirm('퀴즈를 중단하고 나가시겠습니까? 현재까지 답변은 저장됩니다.')) {
+        navigate('/')
+      } else {
+        window.history.pushState(null, '', window.location.href)
+      }
+    }
+
+    const onBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault() }
+
+    window.addEventListener('popstate', onPopState)
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => {
+      window.removeEventListener('popstate', onPopState)
+      window.removeEventListener('beforeunload', onBeforeUnload)
+    }
+  }, [quizDone])
+
   const currentQ = questions[currentQuestionIndex]
   const selectedChoiceId = currentQ ? answers[currentQ.id] : undefined
 
@@ -61,6 +89,7 @@ export default function QuizPlayPage() {
   const handleComplete = async () => {
     setSubmitting(true)
     await quizApi.complete(Number(sessionId))
+    setQuizDone(true)
     navigate(`/quiz/${sessionId}/result`)
   }
 
@@ -92,23 +121,28 @@ export default function QuizPlayPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+    <div className="min-h-screen bg-gray-50 pb-36">
+      <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
         <div className="flex items-center justify-between">
-          <button onClick={() => navigate('/')} className="text-sm text-gray-500 hover:text-gray-700">← 나가기</button>
+          <button
+            onClick={() => navigate('/')}
+            className="text-sm text-gray-500 hover:text-gray-700"
+          >← 나가기</button>
           <span className="text-sm text-gray-500">{answeredCount}/{questions.length} 답변 완료</span>
         </div>
 
         <ProgressBar current={currentQuestionIndex + 1} total={questions.length} />
 
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 space-y-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
           <div className="flex flex-wrap gap-1.5">
             {currentQ.tags.map(qt => (
               <TagBadge key={qt.tag.id} name={qt.tag.name} color={qt.tag.color} />
             ))}
           </div>
 
-          <p className="text-lg font-medium text-gray-900 leading-relaxed">{currentQ.content}</p>
+          <div className="text-lg font-medium text-gray-900 leading-relaxed prose prose-sm max-w-none">
+            <ReactMarkdown>{currentQ.content}</ReactMarkdown>
+          </div>
 
           <div className="space-y-3">
             {currentQ.choices.map((choice) => (
@@ -124,7 +158,6 @@ export default function QuizPlayPage() {
             ))}
           </div>
 
-          {/* Answer reveal section */}
           <div className="border-t border-gray-100 pt-4">
             <button
               onClick={() => setShowAnswer(prev => !prev)}
@@ -145,34 +178,38 @@ export default function QuizPlayPage() {
             )}
           </div>
         </div>
+      </div>
 
-        <div className="flex justify-between">
-          <Button variant="secondary" onClick={handlePrev} disabled={currentQuestionIndex === 0}>← 이전</Button>
-          {isLastQuestion ? (
-            <Button onClick={handleComplete} disabled={submitting}>
-              {submitting ? '제출 중...' : '제출하기'}
-            </Button>
-          ) : (
-            <Button onClick={handleNext}>다음 →</Button>
-          )}
-        </div>
-
-        <div className="flex flex-wrap gap-2 justify-center">
+      {/* 하단 고정 내비게이션 */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-50">
+        {/* 문제 번호 스크롤 */}
+        <div className="flex gap-1.5 px-4 pt-3 pb-1 overflow-x-auto scrollbar-none">
           {questions.map((q, i) => (
             <button
               key={q.id}
               onClick={() => setCurrentIndex(i)}
-              className={`w-8 h-8 rounded-full text-xs font-medium transition-colors ${
+              className={`w-7 h-7 rounded-full text-xs font-medium transition-colors shrink-0 ${
                 i === currentQuestionIndex
                   ? 'bg-indigo-600 text-white'
                   : answers[q.id] !== undefined
                     ? 'bg-indigo-100 text-indigo-700'
-                    : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                    : 'bg-gray-100 text-gray-500'
               }`}
             >
               {i + 1}
             </button>
           ))}
+        </div>
+        {/* 이전 / 다음 버튼 */}
+        <div className="flex gap-3 px-4 py-3">
+          <Button variant="secondary" className="flex-1" onClick={handlePrev} disabled={currentQuestionIndex === 0}>← 이전</Button>
+          {isLastQuestion ? (
+            <Button className="flex-1" onClick={handleComplete} disabled={submitting}>
+              {submitting ? '제출 중...' : '제출하기'}
+            </Button>
+          ) : (
+            <Button className="flex-1" onClick={handleNext}>다음 →</Button>
+          )}
         </div>
       </div>
     </div>
