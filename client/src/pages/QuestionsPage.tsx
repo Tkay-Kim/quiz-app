@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import ReactMarkdown from 'react-markdown'
 import { useQuestions } from '../hooks/useQuestions'
 import { useTags } from '../hooks/useTags'
 import { questionsApi, Question } from '../api/questions.api'
@@ -23,9 +22,9 @@ function QuestionItem({ q, onDelete }: { q: Question; onDelete: (q: Question) =>
       >
         <span className="mt-0.5 text-gray-300 text-sm shrink-0">{open ? '▲' : '▼'}</span>
         <div className="flex-1 min-w-0">
-          <div className={`text-gray-900 font-medium leading-relaxed prose prose-sm max-w-none ${open ? '' : 'line-clamp-2'}`}>
-            <ReactMarkdown>{q.content}</ReactMarkdown>
-          </div>
+          <p className={`text-gray-900 font-medium leading-relaxed ${open ? '' : 'line-clamp-2'}`}>
+            {q.content}
+          </p>
           <div className="flex flex-wrap gap-1.5 mt-2">
             {q.tags.map(qt => <TagBadge key={qt.tag.id} name={qt.tag.name} color={qt.tag.color} />)}
           </div>

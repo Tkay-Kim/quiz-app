@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import ReactMarkdown from 'react-markdown'
 import { quizApi } from '../api/quiz.api'
 import { useQuizStore } from '../store/quizStore'
 import ProgressBar from '../components/quiz/ProgressBar'
@@ -140,9 +139,7 @@ export default function QuizPlayPage() {
             ))}
           </div>
 
-          <div className="text-lg font-medium text-gray-900 leading-relaxed prose prose-sm max-w-none">
-            <ReactMarkdown>{currentQ.content}</ReactMarkdown>
-          </div>
+          <p className="text-lg font-medium text-gray-900 leading-relaxed">{currentQ.content}</p>
 
           <div className="space-y-3">
             {currentQ.choices.map((choice) => (
